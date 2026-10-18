@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>rng-made</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .timer-progress {
+            transition: width 100ms linear;
+        }
+        .screen-step {
+            animation: slideFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px) scale(0.995);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        @keyframes successPulse {
+            0% { transform: scale(0.98); opacity: 0.8; }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .animate-subtle-pulse {
+            animation: subtlePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .confirm-green {
+            animation: successPulse 0.35s ease-out forwards;
+            background-color: #ecfdf5 !important;
+            border-color: #059669 !important;
+            color: #047857 !important;
+        }
+        ::selection {
+            background: #171717;
+            color: #ffffff;
+        }
+        .card-hover-lift {
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover-lift:hover {
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="bg-white text-neutral-900 font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-neutral-900 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-neutral-100 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
+        <div class="max-w-xl mx-auto px-6 py-4 flex justify-between items-center">
+            <!-- Plain text logo -->
+            <button type="button" onclick="resetToMenu()" class="font-mono text-base tracking-tight font-semibold text-neutral-900 hover:text-neutral-500 transition-colors focus:outline-none">
+                rng-made
+            </button>
+            
+            <!-- Language Dropdown Button with Globe SVG -->
+            <div class="relative inline-block text-left">
+                <button id="lang-btn" type="button" onclick="toggleLangDropdown()" class="flex items-center space-x-1.5 py-1 px-2.5 rounded border border-neutral-200 text-xs font-mono text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-all focus:outline-none">
+                    <!-- SVG Globe Icon -->
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3.6 9h16.8M3.6 15h16.8"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11.5 3a17 17 0 000 18M12.5 3a17 17 0 010 18"></path>
+                    </svg>
+                    <span id="current-lang-code" class="uppercase font-medium">EN</span>
+                </button>
+
+                <!-- Language Dropdown Menu -->
+                <div id="lang-menu" class="hidden absolute right-0 mt-2 w-44 bg-white border border-neutral-200 rounded-md shadow-lg py-1 z-50">
+                    <button type="button" onclick="changeLanguage('en')" class="w-full text-left px-3 py-1.5 text-xs font-mono text-neutral-700 hover:bg-neutral-50 flex justify-between items-center">
+                        <span>English (US)</span><span class="text-neutral-400 text-[10px]">EN</span>
+                    </button>
+                    <button type="button" onclick="changeLanguage('zh-TW')" class="w-full text-left px-3 py-1.5 text-xs font-mono text-neutral-700 hover:bg-neutral-50 flex justify-between items-center">
+                        <span>繁體中文</span><span class="text-neutral-400 text-[10px]">TW</span>
+                    </button>
+                    <button type="button" onclick="changeLanguage('zh-CN')" class="w-full text-left px-3 py-1.5 text-xs font-mono text-neutral-700 hover:bg-neutral-50 flex justify-between items-center">
+                        <span>简体中文</span><span class="text-neutral-400 text-[10px]">CN</span>
+                    </button>
+                    <button type="button" onclick="changeLanguage('fr')" class="w-full text-left px-3 py-1.5 text-xs font-mono text-neutral-700 hover:bg-neutral-50 flex justify-between items-center">
+                        <span>Français</span><span class="text-neutral-400 text-[10px]">FR</span>
+                    </button>
+                    <button type="button" onclick="changeLanguage('es')" class="w-full text-left px-3 py-1.5 text-xs font-mono text-neutral-700 hover:bg-neutral-50 flex justify-between items-center">
+                        <span>Español</span><span class="text-neutral-400 text-[10px]">ES</span>
+                    </button>
+                    <button type="button" onclick="changeLanguage('de')" class="w-full text-left px-3 py-1.5 text-xs font-mono text-neutral-700 hover:bg-neutral-50 flex justify-between items-center">
+                        <span>Deutsch</span><span class="text-neutral-400 text-[10px]">DE</span>
+                    </button>
+                    <button type="button" onclick="changeLanguage('ja')" class="w-full text-left px-3 py-1.5 text-xs font-mono text-neutral-700 hover:bg-neutral-50 flex justify-between items-center">
+                        <span>日本語</span><span class="text-neutral-400 text-[10px]">JA</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-xl mx-auto px-6 py-12 w-full flex-grow flex flex-col justify-center">
+
+        <!-- SCREEN 1: LANDING PAGE -->
+        <section id="screen-1" class="screen-step space-y-10">
+            <div class="space-y-3">
+                <h1 id="i18n-hero-title" class="text-4xl font-light tracking-tight text-neutral-900">
+                    can you blend in?
+                </h1>
+                <p id="i18n-hero-subtitle" class="text-neutral-500 text-sm leading-relaxed font-normal">
+                    Type a sequence under strict time limits. See if your friends can spot your human input among identical computer RNG fakes.
+                </p>
+            </div>
+
+            <div class="space-y-4 pt-2">
+                <button type="button" onclick="goToScreen(2)" class="w-full bg-neutral-900 hover:bg-neutral-800 active:scale-[0.99] text-white py-3.5 rounded-md text-sm font-medium transition-all shadow-sm flex items-center justify-center space-x-2">
+                    <span id="i18n-start-btn">Create Challenge</span>
+                    <span class="font-mono text-xs">→</span>
+                </button>
+
+                <div class="pt-6 border-t border-neutral-100 space-y-3">
+                    <label id="i18n-paste-label" class="block text-xs font-mono uppercase tracking-wider text-neutral-400">Have a link?</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="paste-link-input" placeholder="Paste URL or hash..." 
+                               class="w-full bg-neutral-50 border border-neutral-200 rounded-md px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-neutral-900 transition-colors">
+                        <button type="button" onclick="loadPastedLink()" id="i18n-play-btn" class="bg-neutral-100 hover:bg-neutral-200 active:scale-[0.98] text-neutral-900 text-xs font-mono uppercase tracking-wider px-4 py-2.5 rounded-md transition-all whitespace-nowrap border border-neutral-200">
+                            Play
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SCREEN 2: PRESET MODE SELECTION -->
+        <section id="screen-2" class="screen-step hidden space-y-8">
+            <div class="space-y-1">
+                <h2 id="i18n-select-odds-title" class="text-2xl font-light tracking-tight text-neutral-900">Select Odds Preset</h2>
+                <p id="i18n-select-odds-sub" class="text-neutral-500 text-xs">Choose how each character will be generated.</p>
+            </div>
+
+            <!-- Odds Selector -->
+            <div class="grid grid-cols-1 gap-2.5" id="preset-grid">
+                <!-- Dynamic Preset Buttons -->
+            </div>
+
+            <!-- Custom Odds Input -->
+            <div id="custom-odds-container" class="hidden p-4 bg-neutral-50 border border-neutral-200 rounded-md space-y-2">
+                <label id="i18n-custom-odds-label" class="block text-xs font-mono uppercase tracking-wider text-neutral-500">Tokens & Weights</label>
+                <input type="text" id="custom-odds-input" placeholder="A:1, B:2, C:1" 
+                       class="w-full bg-white border border-neutral-200 rounded px-3 py-2 text-xs font-mono focus:outline-none focus:border-neutral-900">
+                <button type="button" onclick="confirmCustomAndAdvance()" id="i18n-custom-confirm-btn" class="w-full mt-2 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase py-2 rounded transition-colors">
+                    Confirm Custom Preset
+                </button>
+            </div>
+
+            <div class="pt-2">
+                <button type="button" onclick="goToScreen(1)" id="i18n-back-1" class="text-xs font-mono uppercase text-neutral-400 hover:text-neutral-900 transition-colors">
+                    ← Back
+                </button>
+            </div>
+        </section>
+
+
+        <!-- SCREEN 3: LENGTH, FAKES & REVEAL CONFIG -->
+        <section id="screen-3" class="screen-step hidden space-y-8">
+            <div class="space-y-1">
+                <h2 id="i18n-config-title" class="text-2xl font-light tracking-tight text-neutral-900">Configure Challenge</h2>
+                <p id="i18n-config-sub" class="text-neutral-500 text-xs">Set length, number of fakes, reveal mode, and name.</p>
+            </div>
+
+            <!-- Challenger Name -->
+            <div class="space-y-1.5">
+                <label id="i18n-name-label" class="block text-xs font-mono uppercase tracking-wider text-neutral-400">Your Name</label>
+                <input type="text" id="challenger-name-input" placeholder="e.g. Alex" maxlength="24"
+                       class="w-full bg-white border border-neutral-200 rounded-md px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-neutral-900 transition-colors">
+            </div>
+
+            <!-- Length Selector -->
+            <div class="space-y-2">
+                <label id="i18n-length-label" class="block text-xs font-mono uppercase tracking-wider text-neutral-400">Sequence Length</label>
+                <div class="grid grid-cols-5 gap-2" id="length-grid">
+                    <!-- Length buttons -->
+                </div>
+            </div>
+
+            <!-- Fakes Selector -->
+            <div class="space-y-2">
+                <label id="i18n-fakes-label" class="block text-xs font-mono uppercase tracking-wider text-neutral-400">Number of Fakes</label>
+                <div id="fakes-button-group" class="grid grid-cols-2 gap-2">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Reveal Mode Selector -->
+            <div class="space-y-2">
+                <label id="i18n-reveal-mode-label" class="block text-xs font-mono uppercase tracking-wider text-neutral-400">Reveal Mode</label>
+                <div class="grid grid-cols-1 gap-2">
+                    <button type="button" id="mode-a-btn" onclick="selectRevealMode('A')" class="p-3.5 text-left rounded-md border text-xs font-mono transition-all border-neutral-900 bg-neutral-900 text-white shadow-sm">
+                        <div id="i18n-mode-a-title" class="font-bold">Mode A: Immediate Reveal</div>
+                        <div id="i18n-mode-a-desc" class="text-[10px] opacity-70 mt-0.5">Guessers see whether they are right or wrong immediately after picking.</div>
+                    </button>
+                    <button type="button" id="mode-b-btn" onclick="selectRevealMode('B')" class="p-3.5 text-left rounded-md border text-xs font-mono transition-all border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300">
+                        <div id="i18n-mode-b-title" class="font-bold">Mode B: Scheduled Reveal</div>
+                        <div id="i18n-mode-b-desc" class="text-[10px] opacity-70 mt-0.5">Reveals to everyone simultaneously at a set time.</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mode B Date & Time Picker Input -->
+            <div id="mode-b-timer-box" class="hidden p-3.5 bg-neutral-50 border border-neutral-200 rounded-md space-y-2 text-xs font-mono">
+                <label id="i18n-reveal-datetime-label" class="block text-[11px] text-neutral-500 uppercase">Set Reveal Date & Time</label>
+                <input type="datetime-local" id="reveal-datetime-input" class="w-full bg-white border border-neutral-200 rounded px-3 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-neutral-900">
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-neutral-100">
+                <button type="button" onclick="goToScreen(2)" id="i18n-back-2" class="text-xs font-mono uppercase text-neutral-400 hover:text-neutral-900 transition-colors">
+                    ← Back
+                </button>
+                <button type="button" onclick="prepareTypingPhase()" id="i18n-start-typing-btn" class="bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] text-white px-6 py-2.5 rounded-md text-xs font-mono uppercase tracking-wider transition-all">
+                    Start Typing →
+                </button>
+            </div>
+        </section>
+
+
+        <!-- SCREEN 4: TYPING PHASE -->
+        <section id="screen-4" class="screen-step hidden space-y-8">
+            <div class="space-y-1">
+                <div class="flex justify-between items-baseline">
+                    <h2 id="i18n-typing-title" class="text-2xl font-light tracking-tight text-neutral-900">Type Sequence</h2>
+                    <div class="font-mono text-xs text-neutral-500">
+                        <span id="input-length-counter" class="text-neutral-900 font-bold">0 / 20</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Shrinking Background Timer Bar -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-end text-xs font-mono">
+                    <span id="i18n-timer-label" class="text-neutral-400 uppercase">Time Remaining</span>
+                    <span id="countdown-timer-display" class="font-bold text-sm text-neutral-900">9.4s</span>
+                </div>
+                <div class="w-full bg-neutral-100 h-2 rounded-full overflow-hidden">
+                    <div id="typing-timer-bar" class="bg-neutral-900 h-full w-full timer-progress"></div>
+                </div>
+            </div>
+
+            <!-- Typed Sequence Output Box -->
+            <div id="live-typed-box" class="bg-neutral-50 border border-neutral-200 rounded-lg p-6 min-h-[100px] flex items-center justify-center transition-all duration-300">
+                <p id="live-typed-display" class="font-mono text-xl sm:text-2xl tracking-widest text-neutral-900 break-all text-center">
+                    <span id="i18n-typing-placeholder" class="text-neutral-300 italic text-xs font-sans">Click buttons below or press physical keys...</span>
+                </p>
+            </div>
+
+            <!-- Input Controls Grid -->
+            <div id="input-keyboard-grid" class="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
+                <!-- Dynamic buttons injected -->
+            </div>
+        </section>
+
+
+        <!-- SCREEN 5: SHAREABLE LINK PAGE -->
+        <section id="screen-5" class="screen-step hidden space-y-8">
+            <div class="space-y-1">
+                <h2 id="i18n-link-ready-title" class="text-2xl font-light tracking-tight text-neutral-900">Challenge Ready</h2>
+                <p id="i18n-link-ready-sub" class="text-neutral-500 text-xs">Share this link with friends to test if they can spot your human sequence.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="space-y-1.5">
+                    <label id="i18n-share-url-label" class="block text-xs font-mono uppercase tracking-wider text-neutral-400">Shareable URL</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="final-share-url-input" readonly 
+                               class="w-full bg-neutral-50 border border-neutral-200 rounded px-3 py-2 text-xs font-mono text-neutral-600 focus:outline-none">
+                        <button type="button" onclick="copyGeneratedLink()" id="copy-btn" class="bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] text-white text-xs font-mono uppercase tracking-wider px-4 py-2 rounded transition-all whitespace-nowrap">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                    <button type="button" onclick="previewGuesserExperience()" id="i18n-test-guesser-btn" class="flex-1 bg-neutral-100 hover:bg-neutral-200 active:scale-[0.98] text-neutral-900 border border-neutral-200 py-2.5 rounded-md text-xs font-mono uppercase tracking-wider transition-all">
+                        Test Guesser Screen
+                    </button>
+                    <button type="button" onclick="resetToMenu()" id="i18n-menu-btn" class="flex-1 bg-white hover:bg-neutral-50 active:scale-[0.98] text-neutral-500 border border-neutral-200 py-2.5 rounded-md text-xs font-mono uppercase tracking-wider transition-all">
+                        Main Menu
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SCREEN 6: GUESSER SCREEN -->
+        <section id="screen-6" class="screen-step hidden space-y-8">
+            <div class="space-y-3 border-b border-neutral-100 pb-5">
+                <h1 class="text-2xl font-light tracking-tight text-neutral-900">
+                    <span id="i18n-guesser-header-prefix">Which was typed by</span> <span id="guesser-creator-target" class="font-normal underline underline-offset-4 text-neutral-900">Someone</span>?
+                </h1>
+                
+                <!-- Generator Probabilities Callout -->
+                <div id="guesser-probs-box" class="p-3.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs font-mono text-neutral-600 space-y-1">
+                    <div class="text-[11px] font-semibold uppercase text-neutral-400" id="i18n-prob-header">Generator Probabilities Per Token</div>
+                    <div id="guesser-probs-list" class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-neutral-700"></div>
+                </div>
+            </div>
+
+            <!-- Sequence Selection Cards -->
+            <div id="guesser-options-container" class="space-y-3">
+                <!-- Generated sequence options -->
+            </div>
+
+            <!-- Result / Mode B Countdown Box -->
+            <div id="guesser-result-box" class="hidden p-6 rounded-lg border space-y-3 transition-all duration-300">
+                <h3 id="guesser-result-title" class="text-base font-medium"></h3>
+                <p id="guesser-result-desc" class="text-xs text-neutral-600 leading-relaxed"></p>
+                
+                <div class="pt-3 border-t border-neutral-200/60">
+                    <button type="button" onclick="resetToMenu()" id="i18n-create-own-btn" class="bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] text-white text-xs font-mono uppercase tracking-wider px-4 py-2.5 rounded transition-all">
+                        Create Your Own Challenge →
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-neutral-900 text-white text-xs font-mono px-4 py-2.5 rounded shadow-lg opacity-0 transition-all duration-200 pointer-events-none z-50">
+        Copied
+    </div>
+
+    <script>
+        // --- TRANSLATION DICTIONARIES ---
+        const I18N = {
+            'en': {
+                langCode: 'EN',
+                heroTitle: 'can you blend in?',
+                heroSubtitle: 'Type a sequence under strict time limits. See if your friends can spot your human input among identical computer RNG fakes.',
+                startBtn: 'Create Challenge',
+                pasteLabel: 'Have a link?',
+                playBtn: 'Play',
+                selectOddsTitle: 'Select Odds Preset',
+                selectOddsSub: 'Choose how each character will be generated.',
+                customOddsLabel: 'Tokens & Weights',
+                customConfirmBtn: 'Confirm Custom Preset',
+                configTitle: 'Configure Challenge',
+                configSub: 'Set length, number of fakes, reveal mode, and name.',
+                nameLabel: 'Your Name',
+                lengthLabel: 'Sequence Length',
+                fakesLabel: 'Number of Fakes',
+                revealModeLabel: 'Reveal Mode',
+                modeATitle: 'Mode A: Immediate Reveal',
+                modeADesc: 'Guessers see whether they are right or wrong immediately after picking.',
+                modeBTitle: 'Mode B: Scheduled Reveal',
+                modeBDesc: 'Reveals to everyone simultaneously at a set time.',
+                revealDatetimeLabel: 'Set Reveal Date & Time',
+                startTypingBtn: 'Start Typing →',
+                typingTitle: 'Type Sequence',
+                timerLabel: 'Time Remaining',
+                typingPlaceholder: 'Click buttons below or press physical keys...',
+                linkReadyTitle: 'Challenge Ready',
+                linkReadySub: 'Share this link with friends to test if they can spot your human sequence.',
+                shareUrlLabel: 'Shareable URL',
+                testGuesserBtn: 'Test Guesser Screen',
+                menuBtn: 'Main Menu',
+                guesserHeaderPrefix: 'Which was typed by',
+                probHeader: 'Generator Probabilities Per Token',
+                createOwnBtn: 'Create Your Own Challenge →',
+                back: '← Back',
+                copy: 'Copy',
+                copied: 'Copied to clipboard',
+                fakeSingle: 'Fake',
+                fakePlural: 'Fakes',
+                totalSuffix: 'total',
+                presetCoinName: 'Heads / Tails',
+                presetCoinDesc: '1/2 H, 1/2 T',
+                presetBinaryName: 'Binary',
+                presetBinaryDesc: "1/2 '0', 1/2 '1'",
+                presetTrinaryName: 'Trinary',
+                presetTrinaryDesc: 'Equal 0, 1, 2',
+                presetTenaryName: 'Tenary',
+                presetTenaryDesc: 'Equal 0 through 9',
+                presetRpsName: 'RPS',
+                presetRpsDesc: 'Equal Rock (R), Paper (P), Scissors (S)',
+                presetLuckName: 'Luck',
+                presetLuckDesc: "1/2 '1', 1/4 '2', ..., 1/256 '9'",
+                presetCustomName: 'Custom Odds',
+                presetCustomDesc: 'User defined tokens and weights',
+                yourGuessBadge: 'Your Guess',
+                canChangeNotice: 'You can change your selection anytime before the reveal.',
+                guessRecorded: 'Guess Recorded!',
+                comeBackAt: 'Come back at {time}! ({countdown} remaining)',
+                revealsIn: 'Reveals in {countdown}',
+                correctTitle: 'Correct! You identified the Human sequence.',
+                correctDesc: 'Humans naturally introduce slight pattern biases and uneven clusters under strict time limits.',
+                incorrectTitle: 'Incorrect! That was an algorithmic RNG fake.',
+                incorrectDesc: 'The highlighted green sequence above was the true human output.',
+                timeHours: 'h',
+                timeMinutes: 'm',
+                timeSeconds: 's'
+            },
+            'zh-TW': {
+                langCode: 'TW',
+                heroTitle: '你能偽裝成隨機嗎？',
+                heroSubtitle: '在極短限時內輸入隨機序列，測試朋友能否從電腦生成的假數據中找出你的真人手打序列。',
+                startBtn: '建立新挑戰',
+                pasteLabel: '已有挑戰連結？',
+                playBtn: '開始',
+                selectOddsTitle: '選擇機率預設',
+                selectOddsSub: '選擇每個字元的產生規則。',
+                customOddsLabel: '自訂字元與權重',
+                customConfirmBtn: '確認自訂預設',
+                configTitle: '設定挑戰細節',
+                configSub: '設定長度、偽造序列數量、公布模式與你的名字。',
+                nameLabel: '你的名字',
+                lengthLabel: '序列長度',
+                fakesLabel: '偽造序列數量',
+                revealModeLabel: '公布答案模式',
+                modeATitle: '模式 A：立即公布',
+                modeADesc: '猜測者選擇答案後，立即顯示是否正確。',
+                modeBTitle: '模式 B：定時統一公布',
+                modeBDesc: '指定時間到達後，對所有人同時公布正確答案。',
+                revealDatetimeLabel: '設定公布日期與時間',
+                startTypingBtn: '開始輸入序列 →',
+                typingTitle: '輸入序列',
+                timerLabel: '剩餘時間',
+                typingPlaceholder: '點擊下方按鈕或直接按鍵盤輸入...',
+                linkReadyTitle: '挑戰已生成',
+                linkReadySub: '將此連結分享給朋友，看看他們能否找出你的真人序列。',
+                shareUrlLabel: '分享連結',
+                testGuesserBtn: '測試猜測介面',
+                menuBtn: '返回主選單',
+                guesserHeaderPrefix: '哪一個是由',
+                probHeader: '隨機生成器每字機率',
+                createOwnBtn: '建立你的挑戰 →',
+                back: '← 返回',
+                copy: '複製',
+                copied: '已複製到剪貼簿',
+                fakeSingle: '個偽造項',
+                fakePlural: '個偽造項',
+                totalSuffix: '共',
+                presetCoinName: '硬幣 (正/反)',
+                presetCoinDesc: '1/2 正面(H), 1/2 反面(T)',
+                presetBinaryName: '二進位',
+                presetBinaryDesc: "1/2 '0', 1/2 '1'",
+                presetTrinaryName: '三進位',
+                presetTrinaryDesc: '等機率 0, 1, 2',
+                presetTenaryName: '十進位',
+                presetTenaryDesc: '等機率 0 到 9',
+                presetRpsName: '剪刀石頭布',
+                presetRpsDesc: '等機率 石頭(R), 布(P), 剪刀(S)',
+                presetLuckName: '幸運機率',
+                presetLuckDesc: "1/2 '1', 1/4 '2', ..., 1/256 '9'",
+                presetCustomName: '自訂機率',
+                presetCustomDesc: '自行設定字元與權重',
+                yourGuessBadge: '你的選擇',
+                canChangeNotice: '公布時間到達前，你可以隨時更改你的選擇。',
+                guessRecorded: '已記錄你的選擇！',
+                comeBackAt: '請於 {time} 返回查看！ (倒數 {countdown})',
+                revealsIn: '即將在 {countdown} 後公布',
+                correctTitle: '答對了！你成功指出了真人序列。',
+                correctDesc: '人類在限時下輸入時，會不自主地留下模式偏好與不均勻的分佈痕跡。',
+                incorrectTitle: '答錯了！這是隨機演算法生成的假數據。',
+                incorrectDesc: '上方標示綠色的才是真正的真人手打序列。',
+                timeHours: '小時',
+                timeMinutes: '分',
+                timeSeconds: '秒'
+            },
+            'zh-CN': {
+                langCode: 'CN',
+                heroTitle: '你能伪装成随机吗？',
+                heroSubtitle: '在严格限时内输入随机序列，测试朋友能否从电脑生成的假数据中找出你的真人手打序列。',
+                startBtn: '创建新挑战',
+                pasteLabel: '已有挑战链接？',
+                playBtn: '开始',
+                selectOddsTitle: '选择概率预设',
+                selectOddsSub: '选择每个字符的生成规则。',
+                customOddsLabel: '自定义字符与权重',
+                customConfirmBtn: '确认自定义预设',
+                configTitle: '设置挑战细节',
+                configSub: '设置长度、伪造序列数量、公布模式与你的名字。',
+                nameLabel: '你的名字',
+                lengthLabel: '序列长度',
+                fakesLabel: '伪造序列数量',
+                revealModeLabel: '公布答案模式',
+                modeATitle: '模式 A：立即公布',
+                modeADesc: '猜测者选择答案后，立即显示是否正确。',
+                modeBTitle: '模式 B：定时统一公布',
+                modeBDesc: '指定时间到达后，对所有人同时公布正确答案。',
+                revealDatetimeLabel: '设置公布日期与时间',
+                startTypingBtn: '开始输入序列 →',
+                typingTitle: '输入序列',
+                timerLabel: '剩余时间',
+                typingPlaceholder: '点击下方按钮或直接按键盘输入...',
+                linkReadyTitle: '挑战已生成',
+                linkReadySub: '将此链接分享给朋友，看看他们能否找出你的真人序列。',
+                shareUrlLabel: '分享链接',
+                testGuesserBtn: '测试猜测界面',
+                menuBtn: '返回主菜单',
+                guesserHeaderPrefix: '哪一个是由',
+                probHeader: '随机生成器每字概率',
+                createOwnBtn: '创建你的挑战 →',
+                back: '← 返回',
+                copy: '复制',
+                copied: '已复制到剪贴板',
+                fakeSingle: '个伪造项',
+                fakePlural: '个伪造项',
+                totalSuffix: '共',
+                presetCoinName: '硬币 (正/反)',
+                presetCoinDesc: '1/2 正面(H), 1/2 反面(T)',
+                presetBinaryName: '二进制',
+                presetBinaryDesc: "1/2 '0', 1/2 '1'",
+                presetTrinaryName: '三进制',
+                presetTrinaryDesc: '等概率 0, 1, 2',
+                presetTenaryName: '十进制',
+                presetTenaryDesc: '等概率 0 到 9',
+                presetRpsName: '石头剪刀布',
+                presetRpsDesc: '等概率 石头(R), 布(P), 剪刀(S)',
+                presetLuckName: '幸运概率',
+                presetLuckDesc: "1/2 '1', 1/4 '2', ..., 1/256 '9'",
+                presetCustomName: '自定义概率',
+                presetCustomDesc: '自行设置字符与权重',
+                yourGuessBadge: '你的选择',
+                canChangeNotice: '公布时间到达前，你可以随时更改你的选择。',
+                guessRecorded: '已记录你的选择！',
+                comeBackAt: '请于 {time} 返回查看！ (倒计时 {countdown})',
+                revealsIn: '将在 {countdown} 后公布',
+                correctTitle: '答对了！你成功指出了真人序列。',
+                correctDesc: '人类在限时下输入时，会不自主地留下模式偏好与不均匀的分布痕迹。',
+                incorrectTitle: '答错了！这是随机算法生成的假数据。',
+                incorrectDesc: '上方标示绿色的才是真正的真人手打序列。',
+                timeHours: '小时',
+                timeMinutes: '分',
+                timeSeconds: '秒'
+            },
+            'fr': {
+                langCode: 'FR',
+                heroTitle: 'pouvez-vous vous fondre dans le décor ?',
+                heroSubtitle: 'Saisissez une séquence sous un temps limité. Voyez si vos amis peuvent repérer votre saisie humaine parmi les faux RNG.',
+                startBtn: 'Créer un défi',
+                pasteLabel: 'Vous avez un lien ?',
+                playBtn: 'Jouer',
+                selectOddsTitle: 'Sélectionner les probabilités',
+                selectOddsSub: 'Choisissez comment chaque caractère est généré.',
+                customOddsLabel: 'Symboles & Poids',
+                customConfirmBtn: 'Confirmer',
+                configTitle: 'Configurer le défi',
+                configSub: 'Réglez la longueur, les faux, le mode de révélation et votre nom.',
+                nameLabel: 'Votre nom',
+                lengthLabel: 'Longueur de séquence',
+                fakesLabel: 'Nombre de faux',
+                revealModeLabel: 'Mode de révélation',
+                modeATitle: 'Mode A : Révélation immédiate',
+                modeADesc: 'Le résultat est révélé dès que le joueur fait son choix.',
+                modeBTitle: 'Mode B : Révélation programmée',
+                modeBDesc: 'Révélé à tout le monde en même temps à une heure précise.',
+                revealDatetimeLabel: 'Date et heure de révélation',
+                startTypingBtn: 'Commencer à taper →',
+                typingTitle: 'Saisir la séquence',
+                timerLabel: 'Temps restant',
+                typingPlaceholder: 'Cliquez sur les boutons ou utilisez le clavier...',
+                linkReadyTitle: 'Défi prêt',
+                linkReadySub: 'Partagez ce lien avec vos amis.',
+                shareUrlLabel: 'URL de partage',
+                testGuesserBtn: 'Tester la vue devin',
+                menuBtn: 'Menu principal',
+                guesserHeaderPrefix: 'Lequel a été tapé par',
+                probHeader: 'Probabilités du générateur par symbole',
+                createOwnBtn: 'Créer votre propre défi →',
+                back: '← Retour',
+                copy: 'Copier',
+                copied: 'Copié dans le presse-papier',
+                fakeSingle: 'Faux',
+                fakePlural: 'Faux',
+                totalSuffix: 'au total',
+                presetCoinName: 'Pile ou Face',
+                presetCoinDesc: '1/2 H, 1/2 T',
+                presetBinaryName: 'Binaire',
+                presetBinaryDesc: "1/2 '0', 1/2 '1'",
+                presetTrinaryName: 'Trinaire',
+                presetTrinaryDesc: 'Égal 0, 1, 2',
+                presetTenaryName: 'Décimal',
+                presetTenaryDesc: 'Égal 0 à 9',
+                presetRpsName: 'Pierre Feuille Ciseaux',
+                presetRpsDesc: 'Égal R, P, S',
+                presetLuckName: 'Chance',
+                presetLuckDesc: "1/2 '1', 1/4 '2', ..., 1/256 '9'",
+                presetCustomName: 'Personnalisé',
+                presetCustomDesc: 'Symboles et poids sur mesure',
+                yourGuessBadge: 'Votre choix',
+                canChangeNotice: 'Vous pouvez modifier votre choix à tout moment avant la révélation.',
+                guessRecorded: 'Choix enregistré !',
+                comeBackAt: 'Revenez à {time} ! (reste {countdown})',
+                revealsIn: 'Révélation dans {countdown}',
+                correctTitle: 'Correct ! Vous avez identifié la séquence humaine.',
+                correctDesc: 'Les humains introduisent naturellement des biais sous la pression du temps.',
+                incorrectTitle: 'Incorrect ! C\'était un faux généré par l\'algorithme.',
+                incorrectDesc: 'La séquence surlignée en vert ci-dessus était la vraie saisie humaine.',
+                timeHours: 'h',
+                timeMinutes: 'm',
+                timeSeconds: 's'
+            },
+            'es': {
+                langCode: 'ES',
+                heroTitle: '¿puedes pasar desapercibido?',
+                heroSubtitle: 'Escribe una secuencia bajo un límite de tiempo estricto. Mira si tus amigos pueden identificar tu secuencia humana.',
+                startBtn: 'Crear Desafío',
+                pasteLabel: '¿Tienes un enlace?',
+                playBtn: 'Jugar',
+                selectOddsTitle: 'Seleccionar Probabilidad',
+                selectOddsSub: 'Elige cómo se generará cada carácter.',
+                customOddsLabel: 'Símbolos y Pesos',
+                customConfirmBtn: 'Confirmar',
+                configTitle: 'Configurar Desafío',
+                configSub: 'Ajusta longitud, falsos, modo de revelación y nombre.',
+                nameLabel: 'Tu Nombre',
+                lengthLabel: 'Longitud de Secuencia',
+                fakesLabel: 'Cantidad de Falsos',
+                revealModeLabel: 'Modo de Revelación',
+                modeATitle: 'Modo A: Revelación Inmediata',
+                modeADesc: 'Se muestra la respuesta correcta inmediatamente tras elegir.',
+                modeBTitle: 'Modo B: Revelación Programada',
+                modeBDesc: 'Se revela a todos simultáneamente en un momento fijado.',
+                revealDatetimeLabel: 'Fecha y hora de revelación',
+                startTypingBtn: 'Escribir Secuencia →',
+                typingTitle: 'Escribe la Secuencia',
+                timerLabel: 'Tiempo Restante',
+                typingPlaceholder: 'Haz clic en los botones o usa el teclado...',
+                linkReadyTitle: 'Desafío Listo',
+                linkReadySub: 'Comparte este enlace con tus amigos.',
+                shareUrlLabel: 'URL para Compartir',
+                testGuesserBtn: 'Probar Vista de Adivinador',
+                menuBtn: 'Menú Principal',
+                guesserHeaderPrefix: '¿Cuál fue escrito por',
+                probHeader: 'Probabilidad del generador por símbolo',
+                createOwnBtn: 'Crear Tu Propio Desafío →',
+                back: '← Volver',
+                copy: 'Copiar',
+                copied: 'Copiado al portapapeles',
+                fakeSingle: 'Falso',
+                fakePlural: 'Falsos',
+                totalSuffix: 'en total',
+                presetCoinName: 'Cara o Cruz',
+                presetCoinDesc: '1/2 H, 1/2 T',
+                presetBinaryName: 'Binario',
+                presetBinaryDesc: "1/2 '0', 1/2 '1'",
+                presetTrinaryName: 'Trinario',
+                presetTrinaryDesc: 'Igual 0, 1, 2',
+                presetTenaryName: 'Decimal',
+                presetTenaryDesc: 'Igual 0 a 9',
+                presetRpsName: 'Piedra Papel Tijera',
+                presetRpsDesc: 'Igual R, P, S',
+                presetLuckName: 'Suerte',
+                presetLuckDesc: "1/2 '1', 1/4 '2', ..., 1/256 '9'",
+                presetCustomName: 'Personalizado',
+                presetCustomDesc: 'Símbolos y pesos a medida',
+                yourGuessBadge: 'Tu Elección',
+                canChangeNotice: 'Puedes cambiar tu elección en cualquier momento antes de la revelación.',
+                guessRecorded: '¡Elección registrada!',
+                comeBackAt: '¡Vuelve a las {time}! (quedan {countdown})',
+                revealsIn: 'Se revela en {countdown}',
+                correctTitle: '¡Correcto! Identificaste la secuencia humana.',
+                correctDesc: 'Los humanos introducen involuntariamente patrones bajo presión de tiempo.',
+                incorrectTitle: '¡Incorrecto! Era un falso algoritmo RNG.',
+                incorrectDesc: 'La secuencia verde resaltada arriba era la verdadera entrada humana.',
+                timeHours: 'h',
+                timeMinutes: 'm',
+                timeSeconds: 's'
+            },
+            'de': {
+                langCode: 'DE',
+                heroTitle: 'kannst du verschmelzen?',
+                heroSubtitle: 'Tippe eine Sequenz unter Zeitdruck. Überprüfe, ob deine Freunde deine menschliche Eingabe erkennen.',
+                startBtn: 'Herausforderung Erstellen',
+                pasteLabel: 'Hast du einen Link?',
+                playBtn: 'Spielen',
+                selectOddsTitle: 'Wahrscheinlichkeit Wählen',
+                selectOddsSub: 'Wähle, wie jedes Zeichen generiert wird.',
+                customOddsLabel: 'Symbole & Gewichte',
+                customConfirmBtn: 'Bestätigen',
+                configTitle: 'Konfiguration',
+                configSub: 'Länge, Fakes, Enthüllungsmodus und Namen festlegen.',
+                nameLabel: 'Dein Name',
+                lengthLabel: 'Sequenzlänge',
+                fakesLabel: 'Anzahl Fakes',
+                revealModeLabel: 'Enthüllungsmodus',
+                modeATitle: 'Modus A: Sofortige Enthüllung',
+                modeADesc: 'Ergebnis wird sofort nach Auswahl angezeigt.',
+                modeBTitle: 'Modus B: Geplante Enthüllung',
+                modeBDesc: 'Wird für alle gleichzeitig zu einer festen Zeit enthüllt.',
+                revealDatetimeLabel: 'Enthüllungsdatum & Uhrzeit',
+                startTypingBtn: 'Tippen Starten →',
+                typingTitle: 'Sequenz Tippen',
+                timerLabel: 'Verbleibende Zeit',
+                typingPlaceholder: 'Klicke auf die Tasten oder benutze die Tastatur...',
+                linkReadyTitle: 'Herausforderung Bereit',
+                linkReadySub: 'Teile diesen Link mit deinen Freunden.',
+                shareUrlLabel: 'Teilbare URL',
+                testGuesserBtn: 'Test-Ansicht',
+                menuBtn: 'Hauptmenü',
+                guesserHeaderPrefix: 'Welches wurde getippt von',
+                probHeader: 'Generator-Wahrscheinlichkeit pro Symbol',
+                createOwnBtn: 'Eigene Herausforderung Erstellen →',
+                back: '← Zurück',
+                copy: 'Kopieren',
+                copied: 'In die Zwischenablage kopiert',
+                fakeSingle: 'Fake',
+                fakePlural: 'Fakes',
+                totalSuffix: 'insgesamt',
+                presetCoinName: 'Kopf oder Zahl',
+                presetCoinDesc: '1/2 H, 1/2 T',
+                presetBinaryName: 'Binär',
+                presetBinaryDesc: "1/2 '0', 1/2 '1'",
+                presetTrinaryName: 'Ternär',
+                presetTrinaryDesc: 'Gleich 0, 1, 2',
+                presetTenaryName: 'Dezimal',
+                presetTenaryDesc: 'Gleich 0 bis 9',
+                presetRpsName: 'Schere Stein Papier',
+                presetRpsDesc: 'Gleich R, P, S',
+                presetLuckName: 'Glück',
+                presetLuckDesc: "1/2 '1', 1/4 '2', ..., 1/256 '9'",
+                presetCustomName: 'Benutzerdefiniert',
+                presetCustomDesc: 'Eigene Symbole und Gewichte',
+                yourGuessBadge: 'Deine Wahl',
+                canChangeNotice: 'Du kannst deine Auswahl jederzeit vor der Enthüllung ändern.',
+                guessRecorded: 'Auswahl gespeichert!',
+                comeBackAt: 'Komm um {time} zurück! (noch {countdown})',
+                revealsIn: 'Enthüllung in {countdown}',
+                correctTitle: 'Richtig! Du hast die menschliche Sequenz erkannt.',
+                correctDesc: 'Menschen erzeugen unter Zeitdruck unbewusst ungleichmäßige Muster.',
+                incorrectTitle: 'Falsch! Das war ein gefälschter Algorithmus.',
+                incorrectDesc: 'Die grün hervorgehobene Sequenz war die echte menschliche Eingabe.',
+                timeHours: 'Std',
+                timeMinutes: 'Min',
+                timeSeconds: 'Sek'
+            },
+            'ja': {
+                langCode: 'JA',
+                heroTitle: '紛れ込めるか？',
+                heroSubtitle: '制限時間内に文字列を入力。友達がランダム生成の偽物の中から人間の入力を見抜けるか挑戦。',
+                startBtn: 'チャレンジを作成',
+                pasteLabel: 'リンクをお持ちですか？',
+                playBtn: 'プレイ',
+                selectOddsTitle: '確率プリセットの選択',
+                selectOddsSub: '各文字の生成ルールを選択してください。',
+                customOddsLabel: '文字と重み',
+                customConfirmBtn: 'カスタム決定',
+                configTitle: 'チャレンジの設定',
+                configSub: '長さ、フェイク数、公開モード、名前を設定。',
+                nameLabel: 'あなたの名前',
+                lengthLabel: 'シーケンスの長さ',
+                fakesLabel: 'フェイクの数',
+                revealModeLabel: '結果公開モード',
+                modeATitle: 'モードA：即時公開',
+                modeADesc: '推測を選択するとすぐに正解が表示されます。',
+                modeBTitle: 'モードB：一斉公開',
+                modeBDesc: '指定した日時全員に一斉に公開されます。',
+                revealDatetimeLabel: '公開日時を設定',
+                startTypingBtn: '入力開始 →',
+                typingTitle: 'シーケンスを入力',
+                timerLabel: '残り時間',
+                typingPlaceholder: '下のボタンをクリックするかキーボードで入力...',
+                linkReadyTitle: 'チャレンジ作成完了',
+                linkReadySub: 'このリンクを友達に共有して試してもらいましょう。',
+                shareUrlLabel: '共有用URL',
+                testGuesserBtn: '推測画面をテスト',
+                menuBtn: 'メインメニュー',
+                guesserHeaderPrefix: 'どれが',
+                probHeader: '文字ごとの生成確率',
+                createOwnBtn: '自分のチャレンジを作成 →',
+                back: '← 戻る',
+                copy: 'コピー',
+                copied: 'クリップボードにコピーしました',
+                fakeSingle: '個のフェイク',
+                fakePlural: '個のフェイク',
+                totalSuffix: '合計',
+                presetCoinName: 'コイン (表/裏)',
+                presetCoinDesc: '1/2 表(H), 1/2 裏(T)',
+                presetBinaryName: '2進数',
+                presetBinaryDesc: "1/2 '0', 1/2 '1'",
+                presetTrinaryName: '3進数',
+                presetTrinaryDesc: '均等 0, 1, 2',
+                presetTenaryName: '10進数',
+                presetTenaryDesc: '均等 0 から 9',
+                presetRpsName: 'じゃんけん',
+                presetRpsDesc: '均等 グー(R), パー(P), チョキ(S)',
+                presetLuckName: '幸運確率',
+                presetLuckDesc: "1/2 '1', 1/4 '2', ..., 1/256 '9'",
+                presetCustomName: 'カスタム',
+                presetCustomDesc: '文字と重みを自由設定',
+                yourGuessBadge: 'あなたの選択',
+                canChangeNotice: '結果が公開される前なら、いつでも選択を変更できます。',
+                guessRecorded: '回答を記録しました！',
+                comeBackAt: '{time} に再訪してください！（残り {countdown}）',
+                revealsIn: '残り {countdown} で公開',
+                correctTitle: '正解！人間の入力を見抜きました。',
+                correctDesc: '人間は焦ると無意識にパターンや偏りを残してしまいます。',
+                incorrectTitle: '不正解！それはランダムアルゴリズムの偽物です。',
+                incorrectDesc: '上の緑色で強調表示されたものが本物の人間の入力です。',
+                timeHours: '時間',
+                timeMinutes: '分',
+                timeSeconds: '秒'
+            }
+        };
+
+        // --- PRESET SPECIFICATIONS ---
+        const PRESETS = {
+            coin: {
+                nameKey: "presetCoinName",
+                descKey: "presetCoinDesc",
+                tokens: [
+                    { symbol: 'H', weight: 0.5 },
+                    { symbol: 'T', weight: 0.5 }
+                ]
+            },
+            binary: {
+                nameKey: "presetBinaryName",
+                descKey: "presetBinaryDesc",
+                tokens: [
+                    { symbol: '0', weight: 0.5 },
+                    { symbol: '1', weight: 0.5 }
+                ]
+            },
+            trinary: {
+                nameKey: "presetTrinaryName",
+                descKey: "presetTrinaryDesc",
+                tokens: [
+                    { symbol: '0', weight: 1/3 },
+                    { symbol: '1', weight: 1/3 },
+                    { symbol: '2', weight: 1/3 }
+                ]
+            },
+            tenary: {
+                nameKey: "presetTenaryName",
+                descKey: "presetTenaryDesc",
+                tokens: Array.from({length: 10}, (_, i) => ({ symbol: String(i), weight: 0.1 }))
+            },
+            rps: {
+                nameKey: "presetRpsName",
+                descKey: "presetRpsDesc",
+                tokens: [
+                    { symbol: 'R', weight: 1/3 },
+                    { symbol: 'P', weight: 1/3 },
+                    { symbol: 'S', weight: 1/3 }
+                ]
+            },
+            luck: {
+                nameKey: "presetLuckName",
+                descKey: "presetLuckDesc",
+                tokens: [
+                    { symbol: '1', weight: 1/2 },
+                    { symbol: '2', weight: 1/4 },
+                    { symbol: '3', weight: 1/8 },
+                    { symbol: '4', weight: 1/16 },
+                    { symbol: '5', weight: 1/32 },
+                    { symbol: '6', weight: 1/64 },
+                    { symbol: '7', weight: 1/128 },
+                    { symbol: '8', weight: 1/256 },
+                    { symbol: '9', weight: 1/256 }
+                ]
+            },
+            custom: {
+                nameKey: "presetCustomName",
+                descKey: "presetCustomDesc",
+                tokens: []
+            }
+        };
+
+        const FAKES_RULES = {
+            12: [1, 2, 3, 4],
+            20: [1, 2, 3],
+            30: [1, 2],
+            50: [1],
+            100: [1]
+        };
+
+        const LENGTH_OPTIONS = [12, 20, 30, 50, 100];
+
+        // --- GLOBAL STATE ---
+        let currentLang = localStorage.getItem('rng_made_lang') || 'en';
+        let currentScreen = 1;
+        let selectedPresetKey = 'binary';
+        let selectedLength = 20;
+        let selectedFakesCount = 2;
+        let selectedRevealMode = 'A'; // 'A' or 'B'
+        let activeTokens = [];
+        
+        let typedSequence = "";
+        let timerInterval = null;
+        let countdownTimerInterval = null;
+        let startTime = 0;
+        let totalAllowedTime = 0;
+
+        let activeChallengePayload = null;
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            applyLanguage(currentLang);
+            setDefaultDatetimePicker();
+            renderPresetButtons();
+            renderLengthButtons();
+            setupKeyboardListener();
+
+            window.addEventListener('hashchange', checkUrlHashForPayload);
+            checkUrlHashForPayload();
+        });
+
+        // --- LANGUAGE SYSTEM ---
+        function changeLanguage(langKey) {
+            if (!I18N[langKey]) return;
+            currentLang = langKey;
+            localStorage.setItem('rng_made_lang', langKey);
+            applyLanguage(langKey);
+            toggleLangDropdown(false);
+
+            refreshCurrentScreen();
+        }
+
+        function toggleLangDropdown(forceState) {
+            const menu = document.getElementById('lang-menu');
+            if (!menu) return;
+            if (forceState !== undefined) {
+                if (forceState) menu.classList.remove('hidden');
+                else menu.classList.add('hidden');
+            } else {
+                menu.classList.toggle('hidden');
+            }
+        }
+
+        function applyLanguage(langKey) {
+            const dict = I18N[langKey] || I18N['en'];
+            const langCodeEl = document.getElementById('current-lang-code');
+            if (langCodeEl) langCodeEl.textContent = dict.langCode;
+
+            const setText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+
+            setText('i18n-hero-title', dict.heroTitle);
+            setText('i18n-hero-subtitle', dict.heroSubtitle);
+            setText('i18n-start-btn', dict.startBtn);
+            setText('i18n-paste-label', dict.pasteLabel);
+            setText('i18n-play-btn', dict.playBtn);
+            setText('i18n-select-odds-title', dict.selectOddsTitle);
+            setText('i18n-select-odds-sub', dict.selectOddsSub);
+            setText('i18n-custom-odds-label', dict.customOddsLabel);
+            setText('i18n-custom-confirm-btn', dict.customConfirmBtn);
+            setText('i18n-config-title', dict.configTitle);
+            setText('i18n-config-sub', dict.configSub);
+            setText('i18n-name-label', dict.nameLabel);
+            setText('i18n-length-label', dict.lengthLabel);
+            setText('i18n-fakes-label', dict.fakesLabel);
+            setText('i18n-reveal-mode-label', dict.revealModeLabel);
+            setText('i18n-mode-a-title', dict.modeATitle);
+            setText('i18n-mode-a-desc', dict.modeADesc);
+            setText('i18n-mode-b-title', dict.modeBTitle);
+            setText('i18n-mode-b-desc', dict.modeBDesc);
+            setText('i18n-reveal-datetime-label', dict.revealDatetimeLabel);
+            setText('i18n-start-typing-btn', dict.startTypingBtn);
+            setText('i18n-typing-title', dict.typingTitle);
+            setText('i18n-timer-label', dict.timerLabel);
+            setText('i18n-link-ready-title', dict.linkReadyTitle);
+            setText('i18n-link-ready-sub', dict.linkReadySub);
+            setText('i18n-share-url-label', dict.shareUrlLabel);
+            setText('i18n-test-guesser-btn', dict.testGuesserBtn);
+            setText('i18n-menu-btn', dict.menuBtn);
+            setText('i18n-guesser-header-prefix', dict.guesserHeaderPrefix);
+            setText('i18n-prob-header', dict.probHeader);
+            setText('i18n-create-own-btn', dict.createOwnBtn);
+            setText('i18n-back-1', dict.back);
+            setText('i18n-back-2', dict.back);
+            setText('copy-btn', dict.copy);
+
+            const liveTypedDisplay = document.getElementById('live-typed-display');
+            if (liveTypedDisplay && !typedSequence) {
+                liveTypedDisplay.innerHTML = `<span id="i18n-typing-placeholder" class="text-neutral-300 italic text-xs font-sans">${dict.typingPlaceholder}</span>`;
+            }
+        }
+
+        function refreshCurrentScreen() {
+            if (currentScreen === 2) {
+                renderPresetButtons();
+            } else if (currentScreen === 3) {
+                renderFakesSelection();
+            } else if (currentScreen === 6 && activeChallengePayload) {
+                renderGuesserCards(activeChallengePayload);
+                refreshGuesserScreenState();
+            }
+        }
+
+        // --- DATETIME PICKER DEFAULT ---
+        function setDefaultDatetimePicker() {
+            const picker = document.getElementById('reveal-datetime-input');
+            if (!picker) return;
+            const now = new Date();
+            now.setHours(now.getHours() + 1);
+            now.setMinutes(0, 0, 0);
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            picker.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+
+        // --- NAVIGATION WIZARD ---
+        function goToScreen(screenNumber) {
+            clearAllActiveIntervals();
+
+            for (let i = 1; i <= 6; i++) {
+                const s = document.getElementById(`screen-${i}`);
+                if (s) s.classList.add('hidden');
+            }
+            const target = document.getElementById(`screen-${screenNumber}`);
+            if (target) target.classList.remove('hidden');
+
+            currentScreen = screenNumber;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function clearAllActiveIntervals() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            if (countdownTimerInterval) {
+                clearInterval(countdownTimerInterval);
+                countdownTimerInterval = null;
+            }
+        }
+
+        function resetToMenu() {
+            clearAllActiveIntervals();
+            if (window.location.hash) {
+                try {
+                    history.pushState("", document.title, window.location.pathname + window.location.search);
+                } catch(e) {
+                    window.location.hash = "";
+                }
+            }
+            activeChallengePayload = null;
+            typedSequence = "";
+            goToScreen(1);
+        }
+
+
+        // --- SCREEN 2 LOGIC (Preset Mode) ---
+        function renderPresetButtons() {
+            const grid = document.getElementById('preset-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const dict = I18N[currentLang] || I18N['en'];
+
+            Object.keys(PRESETS).forEach(key => {
+                const preset = PRESETS[key];
+                const pName = dict[preset.nameKey] || preset.nameKey;
+                const pDesc = dict[preset.descKey] || preset.descKey;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = "card-hover-lift p-3.5 text-left rounded-md border text-xs font-mono transition-all border-neutral-200 bg-white text-neutral-800 hover:border-neutral-900 hover:shadow-sm flex justify-between items-center group";
+                btn.onclick = () => selectPresetAndAdvance(key);
+                btn.innerHTML = `
+                    <div>
+                        <div class="font-bold text-neutral-900">${pName}</div>
+                        <div class="text-[11px] text-neutral-400 mt-0.5">${pDesc}</div>
+                    </div>
+                    <span class="text-neutral-300 group-hover:text-neutral-900 group-hover:translate-x-0.5 transition-all">→</span>
+                `;
+                grid.appendChild(btn);
+            });
+        }
+
+        function selectPresetAndAdvance(key) {
+            selectedPresetKey = key;
+            const customBox = document.getElementById('custom-odds-container');
+
+            if (key === 'custom') {
+                if (customBox) customBox.classList.remove('hidden');
+            } else {
+                if (customBox) customBox.classList.add('hidden');
+                activeTokens = PRESETS[key].tokens;
+                renderLengthButtons();
+                renderFakesSelection();
+                goToScreen(3);
+            }
+        }
+
+        function confirmCustomAndAdvance() {
+            const inputEl = document.getElementById('custom-odds-input');
+            const input = inputEl ? inputEl.value.trim() : "";
+            const parsed = parseCustomOdds(input);
+            if (!parsed) {
+                showToast("Enter valid tokens (e.g. A:1, B:2)");
+                return;
+            }
+            activeTokens = parsed;
+            renderLengthButtons();
+            renderFakesSelection();
+            goToScreen(3);
+        }
+
+        function parseCustomOdds(str) {
+            if (!str) return null;
+            const parts = str.split(',');
+            const tokens = [];
+            let totalWeight = 0;
+
+            for (let part of parts) {
+                const [sym, weightStr] = part.split(':').map(s => s ? s.trim() : '');
+                if (!sym || !weightStr) continue;
+                const weight = parseFloat(weightStr);
+                if (isNaN(weight) || weight <= 0) continue;
+                tokens.push({ symbol: sym.toUpperCase(), weight: weight });
+                totalWeight += weight;
+            }
+
+            if (tokens.length === 0) return null;
+            return tokens.map(t => ({
+                symbol: t.symbol,
+                weight: t.weight / totalWeight
+            }));
+        }
+
+
+        // --- SCREEN 3 LOGIC (Config) ---
+        function renderLengthButtons() {
+            const grid = document.getElementById('length-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            LENGTH_OPTIONS.forEach(len => {
+                const isSelected = len === selectedLength;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `py-2 text-center rounded border font-mono text-xs transition-all ${
+                    isSelected 
+                    ? 'border-neutral-900 bg-neutral-900 text-white font-bold shadow-sm' 
+                    : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                }`;
+                btn.onclick = () => {
+                    selectedLength = len;
+                    renderLengthButtons();
+                    renderFakesSelection();
+                };
+                btn.textContent = len;
+                grid.appendChild(btn);
+            });
+        }
+
+        function renderFakesSelection() {
+            const validFakes = FAKES_RULES[selectedLength] || [1];
+            const dict = I18N[currentLang] || I18N['en'];
+
+            if (!validFakes.includes(selectedFakesCount)) {
+                selectedFakesCount = validFakes[0];
+            }
+
+            const container = document.getElementById('fakes-button-group');
+            if (!container) return;
+            container.innerHTML = '';
+
+            validFakes.forEach(num => {
+                const isSelected = num === selectedFakesCount;
+                const labelText = num === 1 ? dict.fakeSingle : dict.fakePlural;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `py-2.5 px-3 rounded-md border text-xs font-mono transition-all flex justify-between items-center ${
+                    isSelected 
+                    ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm' 
+                    : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                }`;
+                btn.onclick = () => {
+                    selectedFakesCount = num;
+                    renderFakesSelection();
+                };
+                btn.innerHTML = `
+                    <span>${num} ${labelText}</span>
+                    <span class="opacity-60 text-[10px]">${dict.totalSuffix} ${num + 1}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectRevealMode(mode) {
+            selectedRevealMode = mode;
+            const btnA = document.getElementById('mode-a-btn');
+            const btnB = document.getElementById('mode-b-btn');
+            const timerBox = document.getElementById('mode-b-timer-box');
+
+            if (mode === 'A') {
+                if (btnA) btnA.className = "p-3.5 text-left rounded-md border text-xs font-mono transition-all border-neutral-900 bg-neutral-900 text-white shadow-sm";
+                if (btnB) btnB.className = "p-3.5 text-left rounded-md border text-xs font-mono transition-all border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300";
+                if (timerBox) timerBox.classList.add('hidden');
+            } else {
+                if (btnB) btnB.className = "p-3.5 text-left rounded-md border text-xs font-mono transition-all border-neutral-900 bg-neutral-900 text-white shadow-sm";
+                if (btnA) btnA.className = "p-3.5 text-left rounded-md border text-xs font-mono transition-all border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300";
+                if (timerBox) timerBox.classList.remove('hidden');
+            }
+        }
+
+
+        // --- SCREEN 4 LOGIC (Typing Challenge Phase) ---
+        function prepareTypingPhase() {
+            typedSequence = "";
+            const counterEl = document.getElementById('input-length-counter');
+            if (counterEl) counterEl.textContent = `0 / ${selectedLength}`;
+            
+            const dict = I18N[currentLang] || I18N['en'];
+            const displayEl = document.getElementById('live-typed-display');
+            if (displayEl) displayEl.innerHTML = `<span class="text-neutral-300 italic text-xs font-sans">${dict.typingPlaceholder}</span>`;
+
+            renderInputKeyboard();
+            goToScreen(4);
+
+            totalAllowedTime = 3.0 + (0.32 * selectedLength) + 2.0;
+            startTime = Date.now();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTypingTimer, 50);
+        }
+
+        function renderInputKeyboard() {
+            const container = document.getElementById('input-keyboard-grid');
+            if (!container) return;
+            container.innerHTML = '';
+
+            activeTokens.forEach(token => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = "px-5 py-3.5 bg-white border border-neutral-300 hover:border-neutral-900 active:scale-95 active:bg-neutral-900 active:text-white rounded-md font-mono text-base font-semibold shadow-sm transition-all flex items-center justify-center min-w-[54px] focus:outline-none";
+                btn.textContent = token.symbol;
+                btn.onclick = () => registerTokenInput(token.symbol);
+                container.appendChild(btn);
+            });
+        }
+
+        function setupKeyboardListener() {
+            window.addEventListener('keydown', (e) => {
+                if (currentScreen !== 4) return;
+                const pressed = e.key.toUpperCase();
+                const matched = activeTokens.find(t => t.symbol === pressed);
+                if (matched) {
+                    registerTokenInput(matched.symbol);
+                }
+            });
+        }
+
+        function registerTokenInput(symbol) {
+            if (typedSequence.length >= selectedLength) return;
+
+            typedSequence += symbol;
+            const counterEl = document.getElementById('input-length-counter');
+            if (counterEl) counterEl.textContent = `${typedSequence.length} / ${selectedLength}`;
+            
+            const displayEl = document.getElementById('live-typed-display');
+            if (displayEl) displayEl.textContent = typedSequence;
+
+            if (typedSequence.length === selectedLength) {
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                const typedBox = document.getElementById('live-typed-box');
+                if (typedBox) typedBox.classList.add('confirm-green');
+
+                setTimeout(() => {
+                    if (typedBox) typedBox.classList.remove('confirm-green');
+                    finishTypingAndGenerateLink();
+                }, 450);
+            }
+        }
+
+        function updateTypingTimer() {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const remaining = Math.max(0, totalAllowedTime - elapsed);
+
+            const displayEl = document.getElementById('countdown-timer-display');
+            if (displayEl) displayEl.textContent = remaining.toFixed(1) + 's';
+
+            const percentage = (remaining / totalAllowedTime) * 100;
+            const bar = document.getElementById('typing-timer-bar');
+            if (bar) bar.style.width = percentage + '%';
+
+            if (remaining <= 0) {
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                showToast(`Time expired! Must type within ${totalAllowedTime.toFixed(1)}s.`);
+                goToScreen(3);
+            }
+        }
+
+        function finishTypingAndGenerateLink() {
+            const nameInput = document.getElementById('challenger-name-input');
+            const nameVal = nameInput ? nameInput.value.trim() : "";
+            const challengerName = nameVal || "Anonymous";
+
+            let revealTimeTimestamp = 0;
+            if (selectedRevealMode === 'B') {
+                const dtInput = document.getElementById('reveal-datetime-input');
+                const dtValue = dtInput ? dtInput.value : "";
+                if (dtValue) {
+                    revealTimeTimestamp = new Date(dtValue).getTime();
+                } else {
+                    revealTimeTimestamp = Date.now() + 3600000;
+                }
+            }
+
+            const seed = Math.floor(Math.random() * 2147483647);
+            const prng = createMulberry32(seed);
+
+            const fakes = [];
+            for (let i = 0; i < selectedFakesCount; i++) {
+                fakes.push(generateSeededRngSequence(activeTokens, selectedLength, prng));
+            }
+
+            const dict = I18N[currentLang] || I18N['en'];
+            const presetName = dict[PRESETS[selectedPresetKey]?.nameKey] || "Custom";
+
+            const allOptions = [typedSequence, ...fakes];
+            const shuffled = seededShuffle(allOptions.map((seq, index) => ({
+                id: index === 0 ? 'HUMAN' : `FAKE_${index}`,
+                seq: seq,
+                isHuman: index === 0
+            })), prng);
+
+            activeChallengePayload = {
+                id: 'rng_' + Math.random().toString(36).substring(2, 9),
+                creator: challengerName,
+                preset: presetName,
+                tokens: activeTokens,
+                length: selectedLength,
+                mode: selectedRevealMode,
+                revealTime: revealTimeTimestamp,
+                options: shuffled
+            };
+
+            const encodedState = btoa(encodeURIComponent(JSON.stringify(activeChallengePayload)));
+            const fullUrl = `${window.location.origin}${window.location.pathname}#challenge=${encodedState}`;
+
+            const shareUrlInput = document.getElementById('final-share-url-input');
+            if (shareUrlInput) shareUrlInput.value = fullUrl;
+            goToScreen(5);
+        }
+
+
+        // --- SEEDED DETERMINISTIC PRNG (Mulberry32) ---
+        function createMulberry32(a) {
+            return function() {
+                var t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+        }
+
+        function generateSeededRngSequence(tokens, length, prngFunc) {
+            if (!tokens || tokens.length === 0) return "0".repeat(length);
+            
+            // Normalize weights
+            const sum = tokens.reduce((acc, t) => acc + (t.weight || 1), 0);
+            const normalized = tokens.map(t => ({
+                symbol: t.symbol,
+                weight: (t.weight || 1) / sum
+            }));
+
+            let result = "";
+            for (let i = 0; i < length; i++) {
+                const rand = prngFunc();
+                let cumulative = 0;
+                let selectedSymbol = normalized[normalized.length - 1].symbol;
+
+                for (let t of normalized) {
+                    cumulative += t.weight;
+                    if (rand <= cumulative) {
+                        selectedSymbol = t.symbol;
+                        break;
+                    }
+                }
+                result += selectedSymbol;
+            }
+            return result;
+        }
+
+        function seededShuffle(array, prngFunc) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(prngFunc() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+
+        // --- SHARE LINK ACTIONS ---
+        function copyGeneratedLink() {
+            const input = document.getElementById('final-share-url-input');
+            if (!input) return;
+            input.select();
+            document.execCommand('copy');
+            const dict = I18N[currentLang] || I18N['en'];
+            showToast(dict.copied);
+        }
+
+        function previewGuesserExperience() {
+            if (activeChallengePayload) {
+                loadGuesserScreen(activeChallengePayload);
+            }
+        }
+
+
+        // --- GUESSER LOGIC & LOCALSTORAGE PERSISTENCE ---
+        function checkUrlHashForPayload() {
+            const hash = window.location.hash;
+            if (hash && hash.includes('#challenge=')) {
+                try {
+                    const base64 = hash.substring(hash.indexOf('#challenge=') + 11);
+                    const jsonStr = decodeURIComponent(atob(base64));
+                    const data = JSON.parse(jsonStr);
+                    if (data && data.options && Array.isArray(data.options)) {
+                        loadGuesserScreen(data);
+                    }
+                } catch (e) {
+                    console.error("Malformed challenge payload in URL hash", e);
+                }
+            }
+        }
+
+        function loadPastedLink() {
+            const inputEl = document.getElementById('paste-link-input');
+            const val = inputEl ? inputEl.value.trim() : '';
+            if (!val) return;
+
+            let hashStr = val;
+            if (val.includes('#challenge=')) {
+                hashStr = val.substring(val.indexOf('#challenge='));
+            } else if (!val.startsWith('#challenge=')) {
+                hashStr = `#challenge=${val}`;
+            }
+
+            try {
+                const base64 = hashStr.replace('#challenge=', '');
+                const jsonStr = decodeURIComponent(atob(base64));
+                const data = JSON.parse(jsonStr);
+                if (data && data.options && Array.isArray(data.options)) {
+                    loadGuesserScreen(data);
+                } else {
+                    showToast("Invalid challenge link");
+                }
+            } catch (e) {
+                showToast("Could not parse link");
+            }
+        }
+
+        function loadGuesserScreen(data) {
+            activeChallengePayload = data;
+            const targetNameEl = document.getElementById('guesser-creator-target');
+            if (targetNameEl) targetNameEl.textContent = data.creator || "Someone";
+
+            // Render generator probabilities
+            const probList = document.getElementById('guesser-probs-list');
+            if (probList) {
+                probList.innerHTML = '';
+                (data.tokens || []).forEach(t => {
+                    const pct = ((t.weight || 0) * 100).toFixed(1) + '%';
+                    const item = document.createElement('div');
+                    item.innerHTML = `<span class="font-bold text-neutral-900">${t.symbol}:</span> ${pct}`;
+                    probList.appendChild(item);
+                });
+            }
+
+            renderGuesserCards(data);
+            const resultBox = document.getElementById('guesser-result-box');
+            if (resultBox) resultBox.classList.add('hidden');
+
+            goToScreen(6);
+            refreshGuesserScreenState();
+        }
+
+        function renderGuesserCards(data) {
+            const container = document.getElementById('guesser-options-container');
+            if (!container || !data || !data.options) return;
+            container.innerHTML = '';
+            const letters = ['A', 'B', 'C', 'D', 'E'];
+
+            data.options.forEach((opt, index) => {
+                const card = document.createElement('div');
+                card.id = `guesser-card-${index}`;
+                card.className = "card-hover-lift bg-white border border-neutral-200 hover:border-neutral-900 rounded-lg p-4 cursor-pointer transition-all flex items-center justify-between group shadow-sm";
+                card.onclick = () => handleGuesserChoice(index);
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3.5 overflow-hidden w-full justify-between">
+                        <div class="flex items-center space-x-3.5 overflow-hidden">
+                            <span id="guesser-card-badge-${index}" class="w-6 h-6 rounded bg-neutral-100 group-hover:bg-neutral-900 group-hover:text-white font-mono text-xs flex items-center justify-center font-medium transition-colors flex-shrink-0">
+                                ${letters[index] || index + 1}
+                            </span>
+                            <p class="font-mono text-sm tracking-widest text-neutral-800 break-all">${opt.seq}</p>
+                        </div>
+                        <div id="guesser-card-status-${index}" class="flex-shrink-0 ml-2"></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function refreshGuesserScreenState() {
+            if (!activeChallengePayload) return;
+            const data = activeChallengePayload;
+            const challengeKey = `rng_guess_${data.id || 'default'}`;
+            const storedGuessIndex = localStorage.getItem(challengeKey);
+
+            const isPastRevealTime = data.mode === 'B' && Date.now() >= (data.revealTime || 0);
+
+            if (data.mode === 'B' && !isPastRevealTime) {
+                const guessIdx = storedGuessIndex !== null ? parseInt(storedGuessIndex, 10) : null;
+                updateGuesserCardsForModeBPending(guessIdx);
+                startLiveModeBCountdown(data.revealTime, guessIdx);
+            } else if (storedGuessIndex !== null) {
+                renderRevealedGuess(parseInt(storedGuessIndex, 10));
+            } else if (isPastRevealTime) {
+                renderRevealedGuess(-1);
+            }
+        }
+
+        function handleGuesserChoice(selectedIndex) {
+            const data = activeChallengePayload;
+            if (!data) return;
+
+            const challengeKey = `rng_guess_${data.id || 'default'}`;
+            const isPastRevealTime = data.mode === 'B' && Date.now() >= (data.revealTime || 0);
+
+            if (data.mode === 'B' && !isPastRevealTime) {
+                // Flash subtle green confirmation pulse upon changing selection
+                const card = document.getElementById(`guesser-card-${selectedIndex}`);
+                if (card) {
+                    card.classList.add('confirm-green');
+                    setTimeout(() => card.classList.remove('confirm-green'), 300);
+                }
+
+                localStorage.setItem(challengeKey, selectedIndex);
+                updateGuesserCardsForModeBPending(selectedIndex);
+                startLiveModeBCountdown(data.revealTime, selectedIndex);
+                return;
+            }
+
+            // Mode A or Mode B after target time has elapsed
+            localStorage.setItem(challengeKey, selectedIndex);
+            renderRevealedGuess(selectedIndex);
+        }
+
+        function updateGuesserCardsForModeBPending(selectedIndex) {
+            const data = activeChallengePayload;
+            if (!data || !data.options) return;
+
+            const dict = I18N[currentLang] || I18N['en'];
+            const letters = ['A', 'B', 'C', 'D', 'E'];
+
+            data.options.forEach((_, idx) => {
+                const card = document.getElementById(`guesser-card-${idx}`);
+                const status = document.getElementById(`guesser-card-status-${idx}`);
+                const badge = document.getElementById(`guesser-card-badge-${idx}`);
+
+                if (!card) return;
+
+                card.onclick = () => handleGuesserChoice(idx);
+
+                if (idx === selectedIndex) {
+                    card.className = "bg-neutral-900 border-2 border-neutral-900 rounded-lg p-4 flex items-center justify-between cursor-pointer transition-all shadow-md";
+                    if (status) {
+                        status.innerHTML = `<span class="bg-white text-neutral-900 text-[10px] font-mono uppercase tracking-wider font-semibold px-2 py-0.5 rounded shadow-sm">${dict.yourGuessBadge}</span>`;
+                    }
+                    if (badge) {
+                        badge.className = "w-6 h-6 rounded bg-white text-neutral-900 font-mono text-xs flex items-center justify-center font-bold flex-shrink-0";
+                    }
+                    const seqText = card.querySelector('p');
+                    if (seqText) seqText.className = "font-mono text-sm tracking-widest text-white break-all";
+                } else {
+                    card.className = "card-hover-lift bg-white border border-neutral-200 hover:border-neutral-900 rounded-lg p-4 cursor-pointer transition-all flex items-center justify-between group shadow-sm";
+                    if (status) status.innerHTML = '';
+                    if (badge) {
+                        badge.className = "w-6 h-6 rounded bg-neutral-100 group-hover:bg-neutral-900 group-hover:text-white font-mono text-xs flex items-center justify-center font-medium transition-colors flex-shrink-0";
+                        badge.textContent = letters[idx] || idx + 1;
+                    }
+                    const seqText = card.querySelector('p');
+                    if (seqText) seqText.className = "font-mono text-sm tracking-widest text-neutral-800 break-all";
+                }
+            });
+        }
+
+        function startLiveModeBCountdown(targetTime, selectedIndex) {
+            if (countdownTimerInterval) {
+                clearInterval(countdownTimerInterval);
+                countdownTimerInterval = null;
+            }
+
+            const updateDisplay = () => {
+                const diff = (targetTime || 0) - Date.now();
+                const dict = I18N[currentLang] || I18N['en'];
+
+                if (diff <= 0) {
+                    if (countdownTimerInterval) {
+                        clearInterval(countdownTimerInterval);
+                        countdownTimerInterval = null;
+                    }
+                    const challengeKey = `rng_guess_${activeChallengePayload?.id || 'default'}`;
+                    const savedIdx = localStorage.getItem(challengeKey);
+                    const finalIdx = savedIdx !== null ? parseInt(savedIdx, 10) : (selectedIndex !== null ? selectedIndex : -1);
+                    renderRevealedGuess(finalIdx);
+                    return;
+                }
+
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                const countdownStr = `${hours}${dict.timeHours} ${String(minutes).padStart(2, '0')}${dict.timeMinutes} ${String(seconds).padStart(2, '0')}${dict.timeSeconds}`;
+                const dateObj = new Date(targetTime);
+                const formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const resultBox = document.getElementById('guesser-result-box');
+                const title = document.getElementById('guesser-result-title');
+                const desc = document.getElementById('guesser-result-desc');
+
+                if (!resultBox || !title || !desc) return;
+
+                resultBox.className = "p-6 rounded-lg border border-neutral-200 bg-neutral-50 space-y-3";
+                title.className = "text-base font-medium text-neutral-900";
+
+                if (selectedIndex !== null && selectedIndex >= 0) {
+                    title.textContent = dict.guessRecorded;
+                    desc.innerHTML = `${dict.comeBackAt.replace('{time}', formattedTime).replace('{countdown}', `<span class="font-mono font-bold animate-subtle-pulse">${countdownStr}</span>`)}<br><span class="text-neutral-400 mt-1 inline-block">${dict.canChangeNotice}</span>`;
+                } else {
+                    title.textContent = dict.modeBTitle;
+                    desc.innerHTML = dict.revealsIn.replace('{countdown}', `<span class="font-mono font-bold animate-subtle-pulse">${countdownStr}</span>`);
+                }
+
+                resultBox.classList.remove('hidden');
+            };
+
+            updateDisplay();
+            countdownTimerInterval = setInterval(updateDisplay, 1000);
+        }
+
+        function renderRevealedGuess(selectedIndex) {
+            if (countdownTimerInterval) {
+                clearInterval(countdownTimerInterval);
+                countdownTimerInterval = null;
+            }
+            if (!activeChallengePayload || !activeChallengePayload.options) return;
+
+            const dict = I18N[currentLang] || I18N['en'];
+            const options = activeChallengePayload.options;
+            const chosen = selectedIndex >= 0 ? options[selectedIndex] : null;
+
+            options.forEach((opt, index) => {
+                const card = document.getElementById(`guesser-card-${index}`);
+                const status = document.getElementById(`guesser-card-status-${index}`);
+                const badge = document.getElementById(`guesser-card-badge-${index}`);
+
+                if (!card) return;
+                card.onclick = null;
+
+                const seqText = card.querySelector('p');
+                if (seqText) seqText.className = "font-mono text-sm tracking-widest text-neutral-900 break-all";
+
+                if (opt.isHuman) {
+                    card.className = "bg-emerald-50/70 border-2 border-emerald-500 rounded-lg p-4 flex items-center justify-between shadow-sm";
+                    if (badge) badge.className = "w-6 h-6 rounded bg-emerald-600 text-white font-mono text-xs flex items-center justify-center font-bold flex-shrink-0";
+                    if (status) status.innerHTML = `<span class="text-emerald-700 text-[10px] font-mono uppercase tracking-wider font-semibold">Human</span>`;
+                } else if (index === selectedIndex && !opt.isHuman) {
+                    card.className = "bg-rose-50/70 border-2 border-rose-400 rounded-lg p-4 flex items-center justify-between opacity-80 shadow-sm";
+                    if (badge) badge.className = "w-6 h-6 rounded bg-rose-500 text-white font-mono text-xs flex items-center justify-center font-bold flex-shrink-0";
+                    if (status) status.innerHTML = `<span class="text-rose-600 text-[10px] font-mono uppercase tracking-wider font-semibold">${dict.yourGuessBadge}</span>`;
+                } else {
+                    card.className = "bg-white border border-neutral-200 rounded-lg p-4 flex items-center justify-between opacity-40";
+                    if (status) status.innerHTML = '';
+                    if (badge) badge.className = "w-6 h-6 rounded bg-neutral-100 text-neutral-600 font-mono text-xs flex items-center justify-center font-medium flex-shrink-0";
+                }
+            });
+
+            const resultBox = document.getElementById('guesser-result-box');
+            const resultTitle = document.getElementById('guesser-result-title');
+            const resultDesc = document.getElementById('guesser-result-desc');
+
+            if (!resultBox || !resultTitle || !resultDesc) return;
+
+            resultBox.classList.remove('hidden');
+
+            if (chosen && chosen.isHuman) {
+                resultBox.className = "p-6 rounded-lg border border-emerald-200 bg-emerald-50/50 space-y-3 shadow-sm";
+                resultTitle.className = "text-base font-medium text-emerald-900";
+                resultTitle.textContent = dict.correctTitle;
+                resultDesc.textContent = dict.correctDesc;
+            } else {
+                resultBox.className = "p-6 rounded-lg border border-rose-200 bg-rose-50/50 space-y-3 shadow-sm";
+                resultTitle.className = "text-base font-medium text-rose-900";
+                resultTitle.textContent = dict.incorrectTitle;
+                resultDesc.textContent = dict.incorrectDesc;
+            }
+        }
+
+
+        // --- UTILS & TOAST ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
